@@ -5,8 +5,20 @@ const HtmlWebPackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 module.exports = {
+  entry: {
+    main: path.join(__dirname, './src/index.js'),
+  },
   output: {
-    path: path.resolve(__dirname, 'dist'),
+    path: path.join(__dirname, 'dist'),
+  },
+  devServer: {
+    static: {
+      directory: path.join(__dirname, './dist'),
+    },
+    // contentBase: path.resolve(__dirname, './dist'),
+    open: true,
+    hot: true,
+    port: 8080,
   },
   module: {
     rules: [
@@ -32,10 +44,10 @@ module.exports = {
           'css-loader',
         ],
       },
-      // {
-      //   test: /\.(png|jpg|gif)$/i,
-      //   type: 'asset/resource',
-      // },
+      {
+        test: /\.(png|jpg|gif)$/i,
+        type: 'asset/resource',
+      },
     ],
   },
   plugins: [

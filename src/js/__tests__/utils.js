@@ -1,0 +1,46 @@
+import { calcTileType } from '../utils';
+
+test.each([
+  [0, 8, 'top-left'],
+  [1, 8, 'top'],
+  [3, 8, 'top'],
+  [6, 8, 'top'],
+  [7, 8, 'top-right'],
+  [8, 8, 'left'],
+  [9, 8, 'center'],
+  [14, 8, 'center'],
+  [15, 8, 'right'],
+  [24, 8, 'left'],
+  [28, 8, 'center'],
+  [31, 8, 'right'],
+  [48, 8, 'left'],
+  [49, 8, 'center'],
+  [51, 8, 'center'],
+  [54, 8, 'center'],
+  [55, 8, 'right'],
+  [56, 8, 'bottom-left'],
+  [57, 8, 'bottom'],
+  [62, 8, 'bottom'],
+  [63, 8, 'bottom-right'],
+  [0, 6, 'top-left'],
+  [1, 6, 'top'],
+  [4, 6, 'top'],
+  [5, 6, 'top-right'],
+  [6, 6, 'left'],
+  [7, 6, 'center'],
+  [10, 6, 'center'],
+  [11, 6, 'right'],
+  [24, 6, 'left'],
+  [25, 6, 'center'],
+  [28, 6, 'center'],
+  [29, 6, 'right'],
+  [30, 6, 'bottom-left'],
+  [31, 6, 'bottom'],
+  [34, 6, 'bottom'],
+  [35, 6, 'bottom-right'],
+])(
+  'test calcTileType(%d, %d)',
+  (index, boardSize, expected) => {
+    expect(calcTileType(index, boardSize)).toBe(expected);
+  }
+);
