@@ -29,11 +29,17 @@ export default class GameController {
     const charactersCount = Math.ceil(Math.random() * 5) + 1;
     const playerTeam = generateTeam(playerTypes, maxLevel, charactersCount);
     const enemyTeam = generateTeam(enemyTypes, maxLevel, charactersCount);
-    console.log(playerTeam);
     this.placeTeam(playerTeam, playerOffset);
     this.placeTeam(enemyTeam, enemyOffset);
 
     this.gamePlay.redrawPositions(this.positionedCharacters);
+
+    this.registerEvents();
+  }
+
+  registerEvents() {
+    this.gamePlay.addCellEnterListener(this.onCellEnter.bind(this));
+    this.gamePlay.addCellLeaveListener(this.onCellLeave.bind(this));
   }
 
   onCellClick(index) {
@@ -42,10 +48,18 @@ export default class GameController {
 
   onCellEnter(index) {
     // TODO: react to mouse enter
+    const selectedCharacter = this.positionedCharacters
+      .find((character) => character.position === index);
+    if (!selectedCharacter) {
+      return;
+    }
+
+    this.gamePlay.showCellTooltip(GameController.characterInfo(selectedCharacter.character), index);
   }
 
   onCellLeave(index) {
     // TODO: react to mouse leave
+    this.gamePlay.hideCellTooltip(index);
   }
 
   placeTeam(team, offset) {
@@ -63,5 +77,9 @@ export default class GameController {
         }
       }
     });
+  }
+
+  static characterInfo(character) {
+    return `\u{1F396}${character.level} \u{2694}${character.attack} \u{1F6E1}${character.defence} \u{2764}${character.health}`;
   }
 }

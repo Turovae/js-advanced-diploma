@@ -31,7 +31,6 @@ describe('test generateTeam', () => {
   test.each(team)(
     'test characters level',
     ('', (character) => {
-      console.log(character);
       expect(character.level).toBeLessThanOrEqual(3);
       expect(character.level).toBeGreaterThanOrEqual(1);
     }),
