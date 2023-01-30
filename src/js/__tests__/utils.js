@@ -42,5 +42,5 @@ test.each([
   'test calcTileType(%d, %d)',
   (index, boardSize, expected) => {
     expect(calcTileType(index, boardSize)).toBe(expected);
-  }
+  },
 );
