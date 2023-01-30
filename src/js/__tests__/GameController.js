@@ -5,8 +5,8 @@ import Swordsman from '../characters/Swordsman';
 import Undead from '../characters/Undead';
 import Vampire from '../characters/Vampire';
 import GameController from '../GameController';
-import GamePlay from '../GamePlay';
-import GameStateService from '../GameStateService';
+// import GamePlay from '../GamePlay';
+// import GameStateService from '../GameStateService';
 
 test.each([
   [new Bowman(1), '\u{1F396}1 \u{2694}25 \u{1F6E1}25 \u{2764}50'],

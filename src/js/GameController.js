@@ -7,6 +7,7 @@ import Vampire from './characters/Vampire';
 import { generateTeam } from './generators';
 import PositionedCharacter from './PositionedCharacter';
 import themes from './themes';
+import GamePlay from './GamePlay';
 
 export default class GameController {
   constructor(gamePlay, stateService) {
@@ -14,6 +15,8 @@ export default class GameController {
     this.stateService = stateService;
 
     this.positionedCharacters = [];
+    this.playerTypes = [Bowman, Swordsman, Magician];
+    this.lastClickedCell = null;
   }
 
   init() {
@@ -23,11 +26,10 @@ export default class GameController {
     const playerOffset = 0;
     const enemyOffset = 8 - 2;
 
-    const playerTypes = [Bowman, Swordsman, Magician];
     const enemyTypes = [Daemon, Undead, Vampire];
     const maxLevel = 3;
     const charactersCount = Math.ceil(Math.random() * 5) + 1;
-    const playerTeam = generateTeam(playerTypes, maxLevel, charactersCount);
+    const playerTeam = generateTeam(this.playerTypes, maxLevel, charactersCount);
     const enemyTeam = generateTeam(enemyTypes, maxLevel, charactersCount);
     this.placeTeam(playerTeam, playerOffset);
     this.placeTeam(enemyTeam, enemyOffset);
@@ -40,10 +42,28 @@ export default class GameController {
   registerEvents() {
     this.gamePlay.addCellEnterListener(this.onCellEnter.bind(this));
     this.gamePlay.addCellLeaveListener(this.onCellLeave.bind(this));
+    this.gamePlay.addCellClickListener(this.onCellClick.bind(this));
   }
 
   onCellClick(index) {
     // TODO: react to click
+    if (this.lastClickedCell) {
+      this.gamePlay.deselectCell(this.lastClickedCell);
+      this.lastClickedCell = null;
+    }
+
+    const selectedCharacter = this.positionedCharacters
+      .find((character) => character.position === index);
+    if (!selectedCharacter) {
+      return;
+    }
+    const isPlayerCharacter = this.playerTypes
+      .some((parentClass) => selectedCharacter.character instanceof parentClass);
+    if (!isPlayerCharacter) {
+      GamePlay.showError('This is enemy character');
+    }
+    this.lastClickedCell = index;
+    this.gamePlay.selectCell(index);
   }
 
   onCellEnter(index) {
