@@ -4,23 +4,32 @@ import Swordsman from './characters/Swordsman';
 import Daemon from './characters/Daemon';
 import Undead from './characters/Undead';
 import Vampire from './characters/Vampire';
-// import { generateTeam } from './generators';
+import { generateTeam } from './generators';
+import { getMoveCells, getAttackCells } from './utils';
 import PositionedCharacter from './PositionedCharacter';
 import themes from './themes';
-import GamePlay from './GamePlay';
 import cursors from './cursors';
 import allowedDistances from './allowedDistances';
+import Ai from './ai';
 
 export default class GameController {
   constructor(gamePlay, stateService) {
     this.gamePlay = gamePlay;
     this.stateService = stateService;
+    this.ai = new Ai();
+    this.charactersCount = 4;
+    this.level = 1;
+    this.isPlayerTurn = true;
 
-    this.positionedCharacters = [];
+    // this.positionedCharacters = [];
     this.playerTypes = [Bowman, Swordsman, Magician];
     this.lastClickedCell = null;
 
     this.enemyTypes = [Daemon, Undead, Vampire];
+    // this.playerTeam = [];
+    // this.enemyTeam = [];
+    this.playerTeam = new Set();
+    this.enemyTeam = new Set();
 
     this.selectedCharacter = null;
   }
@@ -29,27 +38,16 @@ export default class GameController {
     // TODO: add event listeners to gamePlay events
     // TODO: load saved stated from stateService
     this.gamePlay.drawUi(themes.prairie);
-    // Отладка. Снять комментарии при удалении
-    // const playerOffset = 0;
-    // const enemyOffset = 8 - 2;
+    const playerOffset = 0;
+    const enemyOffset = this.gamePlay.boardSize - 2;
 
-    // const maxLevel = 3;
-    // const charactersCount = Math.ceil(Math.random() * 5) + 1; *
-    // const charactersCount = 1;
-    // const playerTeam = generateTeam(this.playerTypes, maxLevel, charactersCount);
-    // const enemyTeam = generateTeam(this.enemyTypes, maxLevel, charactersCount);
-    // this.placeTeam(playerTeam, playerOffset);
-    // this.placeTeam(enemyTeam, enemyOffset);
-    // 5 строки добавлено для отладки
-    this.positionedCharacters = [
-      new PositionedCharacter(new Bowman(1), 36),
-      new PositionedCharacter(new Swordsman(1), 27),
-      new PositionedCharacter(new Daemon(1), 9),
-    ];
-    // this.positionedCharacters[0].position = 36;
-    // this.positionedCharacters[1].position = 26;
+    const players = generateTeam(this.playerTypes, this.level, this.charactersCount);
+    const enemies = generateTeam(this.enemyTypes, this.level, this.charactersCount);
 
-    this.gamePlay.redrawPositions(this.positionedCharacters);
+    GameController.placeTeam(this.playerTeam, players, playerOffset, this.gamePlay.boardSize);
+    GameController.placeTeam(this.enemyTeam, enemies, enemyOffset, this.gamePlay.boardSize);
+
+    this.gamePlay.redrawPositions([...this.playerTeam, ...this.enemyTeam]);
 
     this.registerEvents();
   }
@@ -61,33 +59,62 @@ export default class GameController {
   }
 
   onCellClick(index) {
-    // TODO: react to click
-    // if (this.lastClickedCell) {
-    //   this.gamePlay.deselectCell(this.lastClickedCell);
-    //   this.lastClickedCell = null;
-    // }
-
-    if (this.selectedCharacter) {
-      this.gamePlay.deselectCell(this.selectedCharacter.position);
-      this.selectedCharacter = null;
+    if (!this.isPlayerTurn) {
+      return;
     }
-
-    const characterClicked = this.positionedCharacters
+    // TODO: react to click
+    const characterClicked = [...this.playerTeam, ...this.enemyTeam]
       .find((character) => character.position === index) || null;
 
-    if (this.isPlayer(characterClicked)) {
+    // Выбор персонажа
+    if (this.isAllowSelect(characterClicked)) {
+      if (this.selectedCharacter) {
+        this.gamePlay.deselectCell(this.selectedCharacter.position);
+      }
       this.selectedCharacter = characterClicked;
       this.gamePlay.selectCell(index);
     }
 
-    // this.selectedCharacter = this.positionedCharacters
-    //   .find((character) => character.position === index) || null;
-    // if (!this.selectedCharacter) {
-    //   return;
-    // }
+    if (this.isAllowMoveTo(index, characterClicked)) {
+      this.move(index, this.selectedCharacter);
+      this.selectedCharacter = null;
+      this.isPlayerTurn = false;
+      this.ai.run(this.playerTeam, this.enemyTeam, this.gamePlay);
+      this.isPlayerTurn = true;
+    }
 
-    if (this.isEnemy(characterClicked)) {
-      GamePlay.showError('This is enemy character');
+    if (this.isEnemy(characterClicked) && this.isAllowAttack(index, characterClicked)) {
+      this.attack(index, this.selectedCharacter, characterClicked);
+      this.selectedCharacter = null;
+      if (characterClicked.character.health <= 0) {
+        this.enemyTeam.delete(characterClicked);
+      }
+      this.isPlayerTurn = false;
+    }
+  }
+
+  move(index, character) {
+    this.gamePlay.deselectCell(character.position);
+    this.gamePlay.deselectCell(index);
+    // eslint-disable-next-line no-param-reassign
+    character.position = index;
+    this.gamePlay.redrawPositions([...this.playerTeam, ...this.enemyTeam]);
+  }
+
+  async attack(index, attacker, target) {
+    const attackValue = attacker.character.attack;
+    const defenceValue = target.character.defence;
+    const damage = Math.max(attackValue - defenceValue, attackValue * 0.1);
+    // eslint-disable-next-line no-param-reassign
+    target.character.health -= damage;
+    try {
+      await this.gamePlay.showDamage(index, damage);
+    } finally {
+      this.gamePlay.redrawPositions([...this.playerTeam, ...this.enemyTeam]);
+      this.gamePlay.deselectCell(attacker.position);
+      this.gamePlay.deselectCell(target.position);
+      this.ai.run(this.playerTeam, this.enemyTeam, this.gamePlay);
+      this.isPlayerTurn = true;
     }
   }
 
@@ -101,47 +128,56 @@ export default class GameController {
       .some((acceptable) => testedCharacter.character instanceof acceptable);
   }
 
+  isAllowSelect(character) {
+    return this.isPlayer(character) && character !== this.selectedCharacter;
+  }
+
+  isAllowAttack(index, character) {
+    return this.isEnemy(character)
+      && GameController.isAllowActionTo(this.selectedCharacter, index, 'attack', this.gamePlay.boardSize);
+  }
+
+  isAllowMoveTo(index, character) {
+    return !character
+      && GameController.isAllowActionTo(this.selectedCharacter, index, 'move', this.gamePlay.boardSize);
+  }
+
   onCellEnter(index) {
     // TODO: react to mouse enter
-    const hoveredCharacter = this.positionedCharacters
-      .find((character) => character.position === index);
+    const hoveredCharacter = [...this.playerTeam, ...this.enemyTeam]
+      .find((character) => character.position === index) || null;
     if (hoveredCharacter) {
       this.gamePlay
         .showCellTooltip(GameController.characterInfo(hoveredCharacter.character), index);
     }
 
     // Если собираемся выбрать другого персонажа
-    if (
-      this.isPlayer(hoveredCharacter)
-      && hoveredCharacter !== this.selectedCharacter
-    ) {
+    if (this.isAllowSelect(hoveredCharacter)) {
       this.gamePlay.setCursor(cursors.pointer);
     }
 
     // Если собираемся перейти на другую клетку
-    if (
-      this.selectedCharacter
-      && GameController.isAllowActionTo(this.selectedCharacter, index, 'move')
-      && !hoveredCharacter
-    ) {
+    if (this.isAllowMoveTo(index, hoveredCharacter)) {
       this.gamePlay.setCursor(cursors.pointer);
       this.gamePlay.selectCell(index, 'green');
     }
 
     // Если собираемся атаковать противника
-    if (
-      this.selectedCharacter
-      && this.isEnemy(hoveredCharacter)
-      && GameController.isAllowActionTo(this.selectedCharacter, index, 'attack')
-    ) {
+    if (this.isAllowAttack(index, hoveredCharacter)) {
       this.gamePlay.setCursor(cursors.crosshair);
       this.gamePlay.selectCell(index, 'red');
     }
 
     // Если действие не допустимо
-    const isHoverNotAllowAttack = this.isEnemy(hoveredCharacter) && !GameController.isAllowActionTo(this.selectedCharacter, index, 'attack');
-    const isHoverNotAllowMoveTo = !(hoveredCharacter || GameController.isAllowActionTo(this.selectedCharacter, index, 'move'));
-    if (this.selectedCharacter && (isHoverNotAllowAttack || isHoverNotAllowMoveTo)) {
+    if (
+      this.selectedCharacter
+      && !(
+        this.isAllowMoveTo(index, hoveredCharacter)
+        || this.isAllowAttack(index, hoveredCharacter)
+        || this.isAllowSelect(hoveredCharacter)
+        || hoveredCharacter === this.selectedCharacter
+      )
+    ) {
       this.gamePlay.setCursor(cursors.notallowed);
     }
   }
@@ -157,17 +193,19 @@ export default class GameController {
     }
   }
 
-  placeTeam(team, offset) {
+  static placeTeam(container, team, offset, dimention = 8) {
     const occupiedCells = [];
 
     team.forEach((character) => {
       let position;
       const isTrue = true;
       while (isTrue) {
-        position = Math.floor(Math.random() * 2) + Math.floor(Math.random() * 8) * 8 + offset;
+        position = Math.floor(Math.random() * 2)
+          + Math.floor(Math.random() * dimention) * dimention + offset;
         if (!occupiedCells.includes(position)) {
           occupiedCells.push(position);
-          this.positionedCharacters.push(new PositionedCharacter(character, position));
+          // container.push(new PositionedCharacter(character, position));
+          container.add(new PositionedCharacter(character, position));
           break;
         }
       }
@@ -178,68 +216,7 @@ export default class GameController {
     return `\u{1F396}${character.level} \u{2694}${character.attack} \u{1F6E1}${character.defence} \u{2764}${character.health}`;
   }
 
-  static getAttackCells(index, distance, dimention = 8) {
-    const {
-      maxLeft, maxRight, maxTop, maxBottom,
-    } = GameController
-      .getDistanceActionLimits(index, distance, dimention);
-
-    const indexes = [];
-    for (let y = maxTop; y <= maxBottom; y += 1) {
-      for (let x = maxLeft; x <= maxRight; x += 1) {
-        const allowIndex = index + y * dimention + x;
-        if (allowIndex !== index) {
-          indexes.push(allowIndex);
-        }
-      }
-    }
-    return indexes.sort((a, b) => a - b);
-  }
-
-  static getMoveCells(index, distance, dimention = 8) {
-    const {
-      maxLeft, maxRight, maxTop, maxBottom,
-    } = GameController
-      .getDistanceActionLimits(index, distance, dimention);
-
-    const indexes = [];
-    for (let s = 1; s <= distance; s += 1) {
-      for (let y = -1; y <= 1; y += 1) {
-        const yStep = s * y;
-        if (maxTop <= yStep && yStep <= maxBottom) {
-          for (let x = -1; x <= 1; x += 1) {
-            const xStep = s * x;
-            if (xStep >= maxLeft && xStep <= maxRight) {
-              const allowIndex = index + yStep * dimention + xStep;
-              if (allowIndex !== index) {
-                indexes.push(allowIndex);
-              }
-            }
-          }
-        }
-      }
-    }
-    return indexes.sort((a, b) => a - b);
-  }
-
-  static getDistanceActionLimits(index, distance, dimention) {
-    const maxLeft = -Math.min(index - Math.floor(index / dimention) * dimention, distance);
-    const maxRight = Math.min(
-      Math.ceil((index + 1) / dimention) * dimention - 1 - index,
-      distance,
-    );
-    const maxTop = -Math.min(Math.floor(index / dimention), distance);
-    const maxBottom = Math.min(dimention - Math.ceil(index / dimention), distance);
-
-    return {
-      maxLeft,
-      maxRight,
-      maxTop,
-      maxBottom,
-    };
-  }
-
-  static isAllowActionTo(selected, index, type) {
+  static isAllowActionTo(selected, index, type, dimention = 8) {
     if (!selected) {
       return false;
     }
@@ -248,10 +225,10 @@ export default class GameController {
     switch (type) {
       case 'move':
         maxDistance = allowedDistances[character.type].steps;
-        return GameController.getMoveCells(position, maxDistance).includes(index);
+        return getMoveCells(position, maxDistance, dimention).includes(index);
       case 'attack':
         maxDistance = allowedDistances[character.type].attack;
-        return GameController.getAttackCells(position, maxDistance).includes(index);
+        return getAttackCells(position, maxDistance, dimention).includes(index);
       default:
         return null;
     }

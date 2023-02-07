@@ -7,6 +7,7 @@ import Undead from '../characters/Undead';
 import Vampire from '../characters/Vampire';
 import GameController from '../GameController';
 import PositionedCharacter from '../PositionedCharacter';
+import { getAttackCells, getMoveCells } from '../utils';
 
 test.each([
   [new Bowman(1), '\u{1F396}1 \u{2694}25 \u{1F6E1}25 \u{2764}50'],
@@ -37,11 +38,15 @@ test('test getAllowedIndexes', () => {
     attack: 1,
   });
 
-  const allowedIndexesToMove = GameController
-    .getMoveCells(positionedSwordsman.position, distancesForSwordsman.steps);
+  const allowedIndexesToMove = getMoveCells(
+    positionedSwordsman.position,
+    distancesForSwordsman.steps,
+  );
   expect(allowedIndexesToMove.length).toBe(27);
-  const allowedToAttack = GameController
-    .getMoveCells(positionedSwordsman.position, distancesForSwordsman.attack);
+  const allowedToAttack = getAttackCells(
+    positionedSwordsman.position,
+    distancesForSwordsman.attack,
+  );
 
   expect(allowedToAttack).toEqual([26, 27, 28, 34, 36, 42, 43, 44]);
 });

@@ -62,3 +62,62 @@ export function calcHealthLevel(health) {
 
   return 'high';
 }
+
+function getDistanceActionLimits(index, distance, dimention) {
+  const maxLeft = -Math.min(index - Math.floor(index / dimention) * dimention, distance);
+  const maxRight = Math.min(
+    Math.ceil((index + 1) / dimention) * dimention - 1 - index,
+    distance,
+  );
+  const maxTop = -Math.min(Math.floor(index / dimention), distance);
+  const maxBottom = Math.min(dimention - Math.ceil(index / dimention), distance);
+
+  return {
+    maxLeft,
+    maxRight,
+    maxTop,
+    maxBottom,
+  };
+}
+
+export function getMoveCells(index, distance, dimention = 8) {
+  const {
+    maxLeft, maxRight, maxTop, maxBottom,
+  } = getDistanceActionLimits(index, distance, dimention);
+
+  const indexes = [];
+  for (let s = 1; s <= distance; s += 1) {
+    for (let y = -1; y <= 1; y += 1) {
+      const yStep = s * y;
+      if (maxTop <= yStep && yStep <= maxBottom) {
+        for (let x = -1; x <= 1; x += 1) {
+          const xStep = s * x;
+          if (xStep >= maxLeft && xStep <= maxRight) {
+            const allowIndex = index + yStep * dimention + xStep;
+            if (allowIndex !== index) {
+              indexes.push(allowIndex);
+            }
+          }
+        }
+      }
+    }
+  }
+  return indexes.sort((a, b) => a - b);
+}
+
+export function getAttackCells(index, distance, dimention = 8) {
+  const {
+    maxLeft, maxRight, maxTop, maxBottom,
+  } = getDistanceActionLimits(index, distance, dimention);
+
+  const indexes = [];
+  for (let y = maxTop; y <= maxBottom; y += 1) {
+    for (let x = maxLeft; x <= maxRight; x += 1) {
+      const allowIndex = index + y * dimention + x;
+      if (allowIndex !== index) {
+        indexes.push(allowIndex);
+      }
+    }
+  }
+  return indexes.sort((a, b) => a - b);
+}
