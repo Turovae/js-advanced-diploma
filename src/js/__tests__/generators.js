@@ -25,10 +25,10 @@ describe('test generateTeam', () => {
   const team = generateTeam(playerTypes, 3, 4);
 
   test('characters count', () => {
-    expect(team.length).toBe(4);
+    expect(team.characters.length).toBe(4);
   });
 
-  test.each(team)(
+  test.each(team.characters)(
     'test characters level',
     ('', (character) => {
       expect(character.level).toBeLessThanOrEqual(3);

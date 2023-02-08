@@ -18,7 +18,10 @@ export default class Ai {
       const [attacker, target] = selectedVariant;
       const attackValue = attacker.character.attack;
       const defenceValue = target.character.defence;
-      const damage = Math.max(attackValue - defenceValue, attackValue * 0.1);
+      const damage = Math.min(
+        Math.round(Math.max(attackValue - defenceValue, attackValue * 0.1)),
+        target.character.health,
+      );
       target.character.health -= damage;
 
       try {

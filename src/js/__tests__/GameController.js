@@ -11,17 +11,17 @@ import { getAttackCells, getMoveCells } from '../utils';
 
 test.each([
   [new Bowman(1), '\u{1F396}1 \u{2694}25 \u{1F6E1}25 \u{2764}50'],
-  [new Daemon(1), '\u{1F396}1 \u{2694}10 \u{1F6E1}10 \u{2764}50'],
+  [new Daemon(1), '\u{1F396}1 \u{2694}10 \u{1F6E1}40 \u{2764}50'],
   [new Magician(1), '\u{1F396}1 \u{2694}10 \u{1F6E1}40 \u{2764}50'],
   [new Swordsman(1), '\u{1F396}1 \u{2694}40 \u{1F6E1}10 \u{2764}50'],
   [new Undead(1), '\u{1F396}1 \u{2694}40 \u{1F6E1}10 \u{2764}50'],
   [new Vampire(1), '\u{1F396}1 \u{2694}25 \u{1F6E1}25 \u{2764}50'],
-  [new Bowman(2), '\u{1F396}2 \u{2694}25 \u{1F6E1}25 \u{2764}50'],
-  [new Daemon(2), '\u{1F396}2 \u{2694}10 \u{1F6E1}10 \u{2764}50'],
-  [new Magician(2), '\u{1F396}2 \u{2694}10 \u{1F6E1}40 \u{2764}50'],
-  [new Swordsman(2), '\u{1F396}2 \u{2694}40 \u{1F6E1}10 \u{2764}50'],
-  [new Undead(2), '\u{1F396}2 \u{2694}40 \u{1F6E1}10 \u{2764}50'],
-  [new Vampire(2), '\u{1F396}2 \u{2694}25 \u{1F6E1}25 \u{2764}50'],
+  [new Bowman(2), '\u{1F396}2 \u{2694}33 \u{1F6E1}33 \u{2764}100'],
+  [new Daemon(2), '\u{1F396}2 \u{2694}13 \u{1F6E1}52 \u{2764}100'],
+  [new Magician(2), '\u{1F396}2 \u{2694}13 \u{1F6E1}52 \u{2764}100'],
+  [new Swordsman(2), '\u{1F396}2 \u{2694}52 \u{1F6E1}13 \u{2764}100'],
+  [new Undead(2), '\u{1F396}2 \u{2694}52 \u{1F6E1}13 \u{2764}100'],
+  [new Vampire(2), '\u{1F396}2 \u{2694}33 \u{1F6E1}33 \u{2764}100'],
 ])(
   'test GameController.characterInfo',
   (character, expected) => {
