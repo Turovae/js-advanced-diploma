@@ -18,9 +18,9 @@ export default class GameController {
     this.gamePlay = gamePlay;
     this.stateService = stateService;
     this.ai = new Ai();
-    this.charactersCount = 5;
-    this.themesGenerator = themes[Symbol.iterator](2);
+    this.charactersCount = 3;
     this.level = 1;
+    this.themesGenerator = undefined;
     this.isPlayerTurn = true;
     this.playerTypes = [Bowman, Swordsman, Magician];
     this.lastClickedCell = null;
@@ -29,12 +29,20 @@ export default class GameController {
     this.enemyTeam = new Set();
 
     this.selectedCharacter = null;
+    this.score = 0;
+
+    this.registerEvents();
   }
 
   init() {
     // TODO: add event listeners to gamePlay events
     // TODO: load saved stated from stateService
+    this.playerTeam.clear();
+    this.enemyTeam.clear();
+    this.themesGenerator = themes[Symbol.iterator](this.level);
+
     this.gamePlay.drawUi(this.themesGenerator.next().value);
+    this.gamePlay.showLevel(this.level);
     const playerOffset = 0;
     const enemyOffset = this.gamePlay.boardSize - 2;
 
@@ -45,33 +53,43 @@ export default class GameController {
     GameController.placeTeam(this.enemyTeam, enemies, enemyOffset, this.gamePlay.boardSize);
 
     this.gamePlay.redrawPositions([...this.playerTeam, ...this.enemyTeam]);
-
-    this.registerEvents();
-  }
-
-  levelUp() {
-    this.level += 1;
-    this.gamePlay.drawUi(this.themesGenerator.next().value);
-    this.isPlayerTurn = true;
-
-    const playerOffset = 0;
-    const enemyOffset = this.gamePlay.boardSize - 2;
-
-    const enemies = generateTeam(this.enemyTypes, this.level, this.charactersCount);
-    const players = new Team([...this.playerTeam].map((char) => {
-      char.character.levelUp(this.level);
-      return char.character;
-    }));
-    this.playerTeam.clear();
-    GameController.placeTeam(this.playerTeam, players, playerOffset, this.gamePlay.boardSize);
-    GameController.placeTeam(this.enemyTeam, enemies, enemyOffset, this.gamePlay.boardSize);
-    this.gamePlay.redrawPositions([...this.playerTeam, ...this.enemyTeam]);
   }
 
   registerEvents() {
     this.gamePlay.addCellEnterListener(this.onCellEnter.bind(this));
     this.gamePlay.addCellLeaveListener(this.onCellLeave.bind(this));
     this.gamePlay.addCellClickListener(this.onCellClick.bind(this));
+    this.gamePlay.addNewGameListener(this.newGame.bind(this));
+  }
+
+  levelUp() {
+    this.level += 1;
+    this.enemyTeam.clear();
+    this.gamePlay.drawUi(this.themesGenerator.next().value);
+    this.gamePlay.showScore(this.score);
+    this.gamePlay.showLevel(this.level);
+    this.isPlayerTurn = true;
+
+    const playerOffset = 0;
+    const enemyOffset = this.gamePlay.boardSize - 2;
+
+    const players = new Team([...this.playerTeam].map((char) => {
+      char.character.levelUp(this.level);
+      return char.character;
+    }));
+    this.playerTeam.clear();
+    const enemies = generateTeam(this.enemyTypes, this.level, this.charactersCount);
+
+    GameController.placeTeam(this.playerTeam, players, playerOffset, this.gamePlay.boardSize);
+    GameController.placeTeam(this.enemyTeam, enemies, enemyOffset, this.gamePlay.boardSize);
+
+    this.gamePlay.redrawPositions([...this.playerTeam, ...this.enemyTeam]);
+  }
+
+  newGame() {
+    this.score = 0;
+    this.level = 1;
+    this.init();
   }
 
   onCellClick(index) {
@@ -122,20 +140,25 @@ export default class GameController {
     target.character.health -= damage;
     try {
       await this.gamePlay.showDamage(index, damage);
+      this.score += damage;
+      this.gamePlay.showScore(this.score);
     } finally {
       this.gamePlay.redrawPositions([...this.playerTeam, ...this.enemyTeam]);
       this.selectedCharacter = null;
       if (target.character.health <= 0) {
         this.enemyTeam.delete(target);
       }
-      if (this.enemyTeam.size <= 0) {
-        this.levelUp();
-      } else {
-        this.isPlayerTurn = false;
-      }
       this.gamePlay.deselectCell(attacker.position);
       this.gamePlay.deselectCell(target.position);
-      await this.ai.run(this.playerTeam, this.enemyTeam, this.gamePlay);
+      if (this.enemyTeam.size <= 0) {
+        setTimeout(() => {
+          this.levelUp();
+        }, 100);
+        // this.levelUp();
+      } else {
+        this.isPlayerTurn = false;
+        await this.ai.run(this.playerTeam, this.enemyTeam, this.gamePlay);
+      }
       this.isPlayerTurn = true;
     }
   }
@@ -219,14 +242,12 @@ export default class GameController {
     const occupiedCells = [];
 
     team.characters.forEach((character) => {
-      let position;
       const isTrue = true;
       while (isTrue) {
-        position = Math.floor(Math.random() * 2)
+        const position = Math.floor(Math.random() * 2)
           + Math.floor(Math.random() * dimention) * dimention + offset;
         if (!occupiedCells.includes(position)) {
           occupiedCells.push(position);
-          // container.push(new PositionedCharacter(character, position));
           container.add(new PositionedCharacter(character, position));
           break;
         }

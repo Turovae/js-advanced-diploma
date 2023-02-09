@@ -36,6 +36,10 @@ export default class GamePlay {
         <button data-id="action-save" class="btn">Save Game</button>
         <button data-id="action-load" class="btn">Load Game</button>
       </div>
+      <div class="game-info">
+        Level: <span data-id="show-level">1</span> | 
+        Score: <span data-id="show-score">0</span>
+      </div>
       <div class="board-container">
         <div data-id="board" class="board"></div>
       </div>
@@ -44,6 +48,8 @@ export default class GamePlay {
     this.newGameEl = this.container.querySelector('[data-id=action-restart]');
     this.saveGameEl = this.container.querySelector('[data-id=action-save]');
     this.loadGameEl = this.container.querySelector('[data-id=action-load]');
+    this.showScoreEl = this.container.querySelector('[data-id=show-score]');
+    this.showLevelEl = this.container.querySelector('[data-id=show-level]');
 
     this.newGameEl.addEventListener('click', event => this.onNewGameClick(event));
     this.saveGameEl.addEventListener('click', event => this.onSaveGameClick(event));
@@ -230,5 +236,13 @@ export default class GamePlay {
     if (this.container === null) {
       throw new Error('GamePlay not bind to DOM');
     }
+  }
+
+  showScore(score) {
+    this.showScoreEl.innerHTML = score;
+  }
+
+  showLevel(level) {
+    this.showLevelEl.innerHTML = level;
   }
 }
