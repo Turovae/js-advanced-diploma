@@ -38,7 +38,8 @@ export default class GamePlay {
       </div>
       <div class="game-info">
         Level: <span data-id="show-level">1</span> | 
-        Score: <span data-id="show-score">0</span>
+        Score: <span data-id="show-score">0</span> |
+        Max Score: <span data-id="show-score-max">0</span>
       </div>
       <div class="board-container">
         <div data-id="board" class="board"></div>
@@ -49,6 +50,7 @@ export default class GamePlay {
     this.saveGameEl = this.container.querySelector('[data-id=action-save]');
     this.loadGameEl = this.container.querySelector('[data-id=action-load]');
     this.showScoreEl = this.container.querySelector('[data-id=show-score]');
+    this.showMaxScoreEl = this.container.querySelector('[data-id=show-score-max]');
     this.showLevelEl = this.container.querySelector('[data-id=show-level]');
 
     this.newGameEl.addEventListener('click', event => this.onNewGameClick(event));
@@ -238,8 +240,9 @@ export default class GamePlay {
     }
   }
 
-  showScore(score) {
+  showScore(score, maxScore) {
     this.showScoreEl.innerHTML = score;
+    this.showMaxScoreEl.innerHTML = maxScore;
   }
 
   showLevel(level) {

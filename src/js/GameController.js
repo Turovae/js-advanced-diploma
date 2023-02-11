@@ -12,6 +12,7 @@ import cursors from './cursors';
 import allowedDistances from './allowedDistances';
 import Ai from './ai';
 import Team from './Team';
+import GameState from './GameState';
 
 export default class GameController {
   constructor(gamePlay, stateService) {
@@ -30,6 +31,7 @@ export default class GameController {
 
     this.selectedCharacter = null;
     this.score = 0;
+    this.maxScore = 0;
 
     this.registerEvents();
   }
@@ -39,20 +41,56 @@ export default class GameController {
     // TODO: load saved stated from stateService
     this.playerTeam.clear();
     this.enemyTeam.clear();
-    this.themesGenerator = themes[Symbol.iterator](this.level);
 
+    this.themesGenerator = themes[Symbol.iterator](this.level);
     this.gamePlay.drawUi(this.themesGenerator.next().value);
     this.gamePlay.showLevel(this.level);
+
     const playerOffset = 0;
-    const enemyOffset = this.gamePlay.boardSize - 2;
-
     const players = generateTeam(this.playerTypes, this.level, this.charactersCount);
-    const enemies = generateTeam(this.enemyTypes, this.level, this.charactersCount);
-
     GameController.placeTeam(this.playerTeam, players, playerOffset, this.gamePlay.boardSize);
+
+    const enemyOffset = this.gamePlay.boardSize - 2;
+    const enemies = generateTeam(this.enemyTypes, this.level, this.charactersCount);
     GameController.placeTeam(this.enemyTeam, enemies, enemyOffset, this.gamePlay.boardSize);
 
     this.gamePlay.redrawPositions([...this.playerTeam, ...this.enemyTeam]);
+
+    this.isPlayerTurn = true;
+
+    try {
+      this.maxScore = this.stateService.load().maxScore;
+    } catch (e) {
+      this.maxScore = 0;
+      // eslint-disable-next-line no-console
+      console.log('maxScore not loaded');
+    }
+
+    this.gamePlay.showScore(this.score, this.maxScore);
+  }
+
+  static createTeamFromStorage(team) {
+    const constructors = {
+      PositionedCharacter,
+      Bowman,
+      Swordsman,
+      Magician,
+      Daemon,
+      Undead,
+      Vampire,
+    };
+    return new Set(team.map((elem) => {
+      const char = new constructors[elem.character.constructor]();
+      char.level = elem.character.props.level;
+      char.health = elem.character.props.health;
+      char.attack = elem.character.props.attack;
+      char.defence = elem.character.props.defence;
+
+      return new constructors[elem.constructor](
+        char,
+        elem.position,
+      );
+    }));
   }
 
   registerEvents() {
@@ -60,13 +98,15 @@ export default class GameController {
     this.gamePlay.addCellLeaveListener(this.onCellLeave.bind(this));
     this.gamePlay.addCellClickListener(this.onCellClick.bind(this));
     this.gamePlay.addNewGameListener(this.newGame.bind(this));
+    this.gamePlay.addSaveGameListener(this.saveGame.bind(this));
+    this.gamePlay.addLoadGameListener(this.loadGame.bind(this));
   }
 
   levelUp() {
     this.level += 1;
     this.enemyTeam.clear();
     this.gamePlay.drawUi(this.themesGenerator.next().value);
-    this.gamePlay.showScore(this.score);
+    this.gamePlay.showScore(this.score, this.maxScore);
     this.gamePlay.showLevel(this.level);
     this.isPlayerTurn = true;
 
@@ -90,6 +130,39 @@ export default class GameController {
     this.score = 0;
     this.level = 1;
     this.init();
+  }
+
+  saveGame() {
+    this.stateService.save(GameState.from(this));
+  }
+
+  loadGame() {
+    let state;
+    try {
+      state = this.stateService.load();
+    } catch {
+      this.gamePlay.showError('Data not loaded');
+    }
+    const {
+      charactersCount,
+      level,
+      playerTeam,
+      enemyTeam,
+      score,
+      maxScore,
+    } = state;
+    this.level = level;
+    this.charactersCount = charactersCount;
+    this.score = score;
+    this.maxScore = maxScore;
+    this.playerTeam = GameController.createTeamFromStorage(playerTeam);
+    this.enemyTeam = GameController.createTeamFromStorage(enemyTeam);
+
+    this.themesGenerator = themes[Symbol.iterator](this.level);
+    this.gamePlay.drawUi(this.themesGenerator.next().value);
+    this.gamePlay.showLevel(this.level);
+    this.gamePlay.showScore(this.score, this.maxScore);
+    this.gamePlay.redrawPositions([...this.playerTeam, ...this.enemyTeam]);
   }
 
   onCellClick(index) {
@@ -141,7 +214,8 @@ export default class GameController {
     try {
       await this.gamePlay.showDamage(index, damage);
       this.score += damage;
-      this.gamePlay.showScore(this.score);
+      this.maxScore = Math.max(this.score, this.maxScore);
+      this.gamePlay.showScore(this.score, this.maxScore);
     } finally {
       this.gamePlay.redrawPositions([...this.playerTeam, ...this.enemyTeam]);
       this.selectedCharacter = null;
@@ -164,6 +238,7 @@ export default class GameController {
   }
 
   isPlayer(testedCharacter) {
+    // console.log(testedCharacter);
     return !!testedCharacter && this.playerTypes
       .some((acceptable) => testedCharacter.character instanceof acceptable);
   }
