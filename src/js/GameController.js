@@ -79,6 +79,8 @@ export default class GameController {
       Undead,
       Vampire,
     };
+    // eslint-disable-next-line no-console
+    console.log(constructors);
     return new Set(team.map((elem) => {
       const char = new constructors[elem.character.constructor]();
       char.level = elem.character.props.level;
