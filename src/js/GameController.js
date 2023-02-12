@@ -71,13 +71,13 @@ export default class GameController {
 
   static createTeamFromStorage(team) {
     const constructors = {
-      PositionedCharacter,
-      Bowman,
-      Swordsman,
-      Magician,
-      Daemon,
-      Undead,
-      Vampire,
+      [PositionedCharacter.name]: PositionedCharacter,
+      [Bowman.name]: Bowman,
+      [Swordsman.name]: Swordsman,
+      [Magician.name]: Magician,
+      [Daemon.name]: Daemon,
+      [Undead.name]: Undead,
+      [Vampire.name]: Vampire,
     };
     // eslint-disable-next-line no-console
     console.log(constructors);
