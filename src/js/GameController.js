@@ -72,17 +72,17 @@ export default class GameController {
   static createTeamFromStorage(team) {
     const constructors = {
       [PositionedCharacter.name]: PositionedCharacter,
-      [Bowman.name]: Bowman,
-      [Swordsman.name]: Swordsman,
-      [Magician.name]: Magician,
-      [Daemon.name]: Daemon,
-      [Undead.name]: Undead,
-      [Vampire.name]: Vampire,
+      bowman: Bowman,
+      swordsman: Swordsman,
+      magician: Magician,
+      daemon: Daemon,
+      undead: Undead,
+      vampire: Vampire,
     };
     // eslint-disable-next-line no-console
     console.log(constructors);
     return new Set(team.map((elem) => {
-      const char = new constructors[elem.character.constructor]();
+      const char = new constructors[elem.character.props.type]();
       char.level = elem.character.props.level;
       char.health = elem.character.props.health;
       char.attack = elem.character.props.attack;
